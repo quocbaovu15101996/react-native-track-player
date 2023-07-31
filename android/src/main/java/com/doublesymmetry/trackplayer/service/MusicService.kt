@@ -565,22 +565,26 @@ class MusicService : HeadlessJsTaskService() {
             event.notificationStateChange.collect {
                 when (it) {
                     is NotificationState.POSTED -> {
-                        Timber.d("notification posted with id=%s, ongoing=%s", it.notificationId, it.ongoing)
-                        notificationId = it.notificationId;
-                        notification = it.notification;
-                        if (it.ongoing) {
-                            if (player.playWhenReady) {
-                                startForegroundIfNecessary()
-                            }
-                        } else if (stopForegroundWhenNotOngoing) {
-                            if (removeNotificationWhenNotOngoing || isForegroundService()) {
-                                @Suppress("DEPRECATION")
-                                stopForeground(removeNotificationWhenNotOngoing)
-                                Timber.d("stopped foregrounding%s", if (removeNotificationWhenNotOngoing) " and removed notification" else "")
+                        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                        {
+                            with(androidx.core.app.NotificationManagerCompat.from(applicationContext)) {
+                                notify(it.notificationId, it.notification)
                             }
                         }
+                        else {
+                            startForeground(it.notificationId, it.notification)
+                        }
                     }
-                    else -> {}
+                    is NotificationState.CANCELLED -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            stopForeground(true)
+                        }
+
+                        stopSelf()
+                    }
                 }
             }
         }
