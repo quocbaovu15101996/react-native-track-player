@@ -605,13 +605,14 @@ class MusicService : HeadlessJsTaskService() {
 
         scope.launch {
             event.audioItemTransition.collect {
-                if (!(it is AudioItemTransitionReason.REPEAT)) {
-                    emitPlaybackTrackChangedEvents(
-                        player.currentIndex,
-                        player.previousIndex,
-                        (it?.oldPosition ?: 0).toSeconds()
-                    )
+                var lastIndex: Int? = null
+                if (it is AudioItemTransitionReason.REPEAT) {
+                    lastIndex = player.currentIndex
+                } else if (player.previousItem != null) {
+                    lastIndex = player.previousIndex
                 }
+                var lastPosition = (it?.oldPosition ?: 0).toSeconds();
+                emitPlaybackTrackChangedEvents(player.currentIndex, lastIndex, lastPosition)
             }
         }
 
